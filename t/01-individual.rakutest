@@ -1,0 +1,82 @@
+use Test;
+use Intl::Format::DateTime :manual;
+use Intl::CLDR;
+
+=begin pod
+The point of this test file is to test each of the individual formatting components.
+Any non-numeric formatter should be tested against at several languages to ensure that
+the elements are being pulled from the appropriate CLDR data store.
+
+The :manual export allows us access to two internal formatting functions:
+  get-pattern(Str)
+  pattern-replace(DateTime, Str @pattern, Str $language, CLDR-Calendar $calendar)
+
+Please contribute additional tests as needed.
+=end pod
+
+# Slip these lists into formatting tests
+my @ar = 'ar', cldr<ar>.dates.calendars.gregorian;
+my @en = 'en', cldr<en>.dates.calendars.gregorian;
+my @es = 'es', cldr<es>.dates.calendars.gregorian;
+my @de = 'de', cldr<de>.dates.calendars.gregorian;
+
+# An varied array of times to test different features.  Not all subtests need use all of these times.
+my $d1 = DateTime.new: :2020year, :1month, :2day,  :3hour,  :4minute,  :5second;
+my $d2 = DateTime.new: :1985year, :6month, :17day, :18hour, :29minute, :second(20.123456789);
+my $d3 = DateTime.new: :1993year, :4month, :28day, :0hour,  :0minute,  :second(0.00123);
+
+my %patterns;
+%patterns{$_} = get-pattern $_ for <a aa aaa aaaa aaaaa A AA AAA AAAA AAAAA AAAAAA AAAAAAA AAAAAAAA>;
+
+subtest "a series (am/pm indicators)" => sub {
+    is pattern-replace($d1, %patterns<a>,     |@en), 'am', 'x 1, English (am)';
+    is pattern-replace($d1, %patterns<aa>,    |@en), 'am', 'x 2, English (am)';
+    is pattern-replace($d1, %patterns<aaa>,   |@en), 'am', 'x 3, English (am)';
+    is pattern-replace($d1, %patterns<aaaa>,  |@en), 'am', 'x 4, English (am)';
+    is pattern-replace($d1, %patterns<aaaaa>, |@en), 'a' , 'x 5, English (am)';
+    is pattern-replace($d2, %patterns<a>,     |@en), 'pm', 'x 1, English (pm)';
+    is pattern-replace($d2, %patterns<aa>,    |@en), 'pm', 'x 2, English (pm)';
+    is pattern-replace($d2, %patterns<aaa>,   |@en), 'pm', 'x 3, English (pm)';
+    is pattern-replace($d2, %patterns<aaaa>,  |@en), 'pm', 'x 4, English (pm)';
+    is pattern-replace($d2, %patterns<aaaaa>, |@en), 'p' , 'x 5, English (pm)';
+    is pattern-replace($d1, %patterns<a>,     |@es), 'a. m.', 'x 1, Spanish (am)';
+    is pattern-replace($d1, %patterns<aa>,    |@es), 'a. m.', 'x 2, Spanish (am)';
+    is pattern-replace($d1, %patterns<aaa>,   |@es), 'a. m.', 'x 3, Spanish (am)';
+    is pattern-replace($d1, %patterns<aaaa>,  |@es), 'a. m.', 'x 4, Spanish (am)';
+    is pattern-replace($d1, %patterns<aaaaa>, |@es), 'a. m.', 'x 5, Spanish (am)';
+    is pattern-replace($d2, %patterns<a>,     |@es), 'p. m.', 'x 1, Spanish (pm)';
+    is pattern-replace($d2, %patterns<aa>,    |@es), 'p. m.', 'x 2, Spanish (pm)';
+    is pattern-replace($d2, %patterns<aaa>,   |@es), 'p. m.', 'x 3, Spanish (pm)';
+    is pattern-replace($d2, %patterns<aaaa>,  |@es), 'p. m.', 'x 4, Spanish (pm)';
+    is pattern-replace($d2, %patterns<aaaaa>, |@es), 'p. m.', 'x 5, Spanish (pm)';
+    is pattern-replace($d1, %patterns<a>,     |@de), 'AM', 'x 1, German (am)';
+    is pattern-replace($d1, %patterns<aa>,    |@de), 'AM', 'x 2, German (am)';
+    is pattern-replace($d1, %patterns<aaa>,   |@de), 'AM', 'x 3, German (am)';
+    is pattern-replace($d1, %patterns<aaaa>,  |@de), 'AM', 'x 4, German (am)';
+    is pattern-replace($d1, %patterns<aaaaa>, |@de), '',   'x 5, German (am)';
+    is pattern-replace($d2, %patterns<a>,     |@de), 'PM', 'x 1, German (pm)';
+    is pattern-replace($d2, %patterns<aa>,    |@de), 'PM', 'x 2, German (pm)';
+    is pattern-replace($d2, %patterns<aaa>,   |@de), 'PM', 'x 3, German (pm)';
+    is pattern-replace($d2, %patterns<aaaa>,  |@de), 'PM', 'x 4, German (pm)';
+    is pattern-replace($d2, %patterns<aaaaa>, |@de), '',   'x 5, German (pm)';
+}
+
+subtest "A series (milliseconds in day)" => sub {
+    is pattern-replace($d3, %patterns<A>,         |@en), "1",         "milliseconds - 1 digit";
+    is pattern-replace($d3, %patterns<AA>,        |@en), "01",        "milliseconds - 2 digit";
+    is pattern-replace($d3, %patterns<AAA>,       |@en), "001",       "milliseconds - 3 digit";
+    is pattern-replace($d3, %patterns<AAAA>,      |@en), "0001",      "milliseconds - 4 digit";
+    is pattern-replace($d3, %patterns<AAAAA>,     |@en), "00001",     "milliseconds - 5 digit";
+    is pattern-replace($d3, %patterns<AAAAAA>,    |@en), "000001",    "milliseconds - 6 digit";
+    is pattern-replace($d3, %patterns<AAAAAAA>,   |@en), "0000001",   "milliseconds - 7 digit";
+    is pattern-replace($d3, %patterns<AAAAAAAA>,  |@en), "00000001",  "milliseconds - 8 digit";
+    is pattern-replace($d1, %patterns<A>,         |@en), "11045000",  "milliseconds - calculate";
+}
+
+
+# Begin with this
+#sink format-datetime $d1;
+
+
+
+done-testing;

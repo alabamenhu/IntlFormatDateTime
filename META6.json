@@ -1,0 +1,23 @@
+{
+  "name": "Intl::Format::DateTime",
+  "description": "A module to format time in a localized manner",
+  "version": "0.1",
+  "perl": "6.*",
+  "authors": [
+    "Matthew Stephen Stuckwisch"
+  ],
+  "auth": "git:alabamenhu",
+  "depends": [
+    "Intl::CLDR:ver<0.5+>",
+    "Intl::UserLanguage",
+    "DateTime::Timezones:ver<0.3.5+>"
+  ],
+  "build-depends": [],
+  "test-depends": ["Test"],
+  "provides": {
+    "Intl::Format::DateTime": "lib/Intl/Format/DateTime.pm6"
+  },
+  "resources": ["metazones.data"],
+  "license": "Artistic-2.0",
+  "source-url": "git://github.com/alabamenhu/IntlFormatDateTime.git"
+}

@@ -26,7 +26,7 @@ my $length = 'full';   # other options include 'long', 'short'
 
 # The initial test requires loading CLDR for each of the given languages
 $time = now;
-for <en ar nl ru zh ast ko el he hi ka am hy nl my> -> $language {
+for <en ar nl ru zh ast ko el he hi ka am hy nl my chr> -> $language {
     @foo.push: format-datetime $datetime, :$language, :$length
 }
 @stats.push: "Without cache took { now - $time }";

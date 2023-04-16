@@ -25,34 +25,46 @@ Sets the language to be used in formatting.  Acceptable values are a `LanguageTa
   * **`:relative-to`**  
 **NYI**.  This option will create a relative time offset based on the the interval.  Generally `:relative-to(now)` is what you will want to use, but you can use anything that can coerce to a DateTime.  
 
-**☞** If you use a format length which includes a non–offset-based timezone (generally all *wide* formats), **you must include `use DateTime::Timezones`** somewhere in your main script until a precompilation bug dealing with multidispatch can be fixed in Rakudo.
+If you will be constantly reusing a formatter, you can also obtain a `Callable` form which will reduce some of the overhead and be more performant:
 
+```raku
+my &formatter =    local-datetime-formatter :$language, :$length, :$skeleton;
+              # or local-date-formatter
+              # or local-time-formatter
+              
+formatter DateTime.now
+```
+
+Current performance is about an order of magnitude slower than `DateTime.Str` and is about as fast as vanilla Raku can get. 
+The performance gap can be narrowed if alternate `nqp` versions of formatters are written, but that is not a priority at the moment.
 ## To do
 
   * Finish skeleton patterns support (allowing selection of more specific formats).
-  * Support non-Latin digits for languages that prefer them.
   * Respect capitalization rules per CLDR casing data.
   * Handle non-Gregorian calendars (once a `DateTime::Calendars` module or similar is available)
   * Handle relative time formats (though this may ultimately go into a separate module).
-  
-The non-Latin digits, though in theory simple enough to implement, will require rewriting almost every reference to numbers in each of the 100+ formatters.
-All formatters are currently planned to be rewritten once RakuAST is committed to core, so rather than rewrite things twice, the digits will wait until then.
-Case handling will probably be implemented at that time as well.
 
 ## Dependencies
 
+  * `Intl::LanguageTag`  
+  Used for introspection of language tags.
   * `Intl::UserLanguage`  
-  (determines the default language for formatting).  It in turn depends on `Intl::LanguageTag`
+  Determines the default language for formatting).
   * `Intl::CLDR`  
-  Contains formatting information
+  Contains formatting information.
   * `DateTime::Timezones`  
-  Not a formal dependency due to a precompilation bug in Rakudo, but required in the main script for most `wide` formats.  
-Its use will be checked for in such cases to try to provide a helpful error.
+  Ensures that `DateTime` objects are timezone aware.
 
-These modules are designed to work together, and as of 2021, are maintained by the same person so should not have issues if fully updated.
+These modules are designed to work together, and as of 2023, are maintained by the same person so should not have issues if fully updated.
 
 ## Version history
 
+  * **v0.3.0**
+    * All code now runs with RakuAST for improved performance
+    * Added `local-datetime-formatter` calls for enhanced performance in some situations
+    * Proper week-of-year/weekyear support
+    * Non-Latin digit support 
+    * Restructured file hierarchy for better long term maintenance
   * **v0.2.0**
     * Skeleton formats supported for `format-datetime` (NYI: missing fields and C/j/J formatters NYI)
   * **v0.1**
@@ -60,4 +72,4 @@ These modules are designed to work together, and as of 2021, are maintained by t
 
 ## Copyright and License
 
-© 2021 Matthew Stephen Stuckwisch. All files licensed under the Artistic License 2.0 except for `resources/metaZones.xml` which is owned by Unicode, Inc. and licensed under the Unicode License Agreement (found at `resources/unicode-license.txt`)
+© 2021–2023 Matthew Stephen Stuckwisch. All files licensed under the Artistic License 2.0 except for `resources/metaZones.xml` which is owned by Unicode, Inc. and licensed under the Unicode License Agreement (found at `resources/unicode-license.txt`)

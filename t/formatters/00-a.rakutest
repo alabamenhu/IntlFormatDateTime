@@ -1,0 +1,47 @@
+use v6.d;
+use Test;
+use Intl::Format::DateTime :expert;
+use Intl::CLDR;
+use Intl::LanguageTag;
+use experimental :rakuast;
+
+my @am-dt;
+my @pm-dt;
+my @patterns = <a aa aaa aaaa aaaaa>;
+
+# Date intentionally chosen to avoid any clashes with timezones
+@am-dt.push: DateTime.new(:year(2000), :month(1), :day(3), :hour($_), :minute( 0), :second( 0)) for    ^11;
+@am-dt.push: DateTime.new(:year(2000), :month(1), :day(3), :hour($_), :minute(59), :second(59)) for    ^11;
+@pm-dt.push: DateTime.new(:year(2000), :month(1), :day(3), :hour($_), :minute( 0), :second( 0)) for 12..23;
+@pm-dt.push: DateTime.new(:year(2000), :month(1), :day(3), :hour($_), :minute(59), :second(59)) for 12..23;
+
+use Intl::CLDR;
+
+for <en ar ru ja> -> \language {
+    my @am = cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.abbreviated.am,
+             cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.abbreviated.am,
+             cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.abbreviated.am,
+             cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.wide       .am,
+             cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.narrow     .am,
+    my @pm = cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.abbreviated.pm,
+             cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.abbreviated.pm,
+             cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.abbreviated.pm,
+             cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.wide       .pm,
+             cldr{language}.dates.calendars.gregorian.day-periods.stand-alone.narrow     .pm,
+    subtest {
+        for ^4 -> \i {
+            my $is-valid = True;
+            $is-valid = False
+                unless datetime-formatter(@patterns[i], :language(LanguageTag.new: language)).($_)
+                    eq @am[i]
+                        for @am;
+            $is-valid = False
+                unless datetime-formatter(@patterns[i], :language(LanguageTag.new: language)).($_)
+                    eq @pm[i]
+                        for @pm;
+            ok $is-valid, "'{@patterns[i]}' for {language}"
+        }
+    }, "a-series for {language}"
+}
+
+done-testing;

@@ -1,7 +1,6 @@
 #!/usr/bin/env perl6
 
 use Intl::Format::DateTime;
-use DateTime::Timezones;
 
 my $d1 = DateTime.new: :2020year, :1month, :2day, :3hour, :4minute, :5second;
 

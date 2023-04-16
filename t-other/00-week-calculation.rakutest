@@ -1,0 +1,126 @@
+use v6.d;
+use Test;
+
+sub rd(Dateish $date --> Int) {
+     # Provides a fixed date from which to do calculations (epoch: 1 AD January 1)
+     # This function calculates the Julian day, and then subtracts a fixed epoch value (1721425)
+     # to align with the
+     my $a = (14 - $date.month) div 12;
+     my $y = $date.year + 4800 - $a;
+     my $m = $date.month + 12 * $a - 3;
+     $date.day + ((153 * $m + 2) div 5) + 365 * $y + ($y div 4) - ($y div 100) + ($y div 400) - 32045 - 1721425
+ }
+
+#| Provides the day-of-the-week from the unified date (Monday = 1)
+sub day-of-week-from-fixed(Int $date) { $date mod 7 }
+
+#| Provides the unified date of the next weekday ($k, Monday =1) from the given date
+sub kday-on-or-before(Int $k, Int $date) {
+    $date - day-of-week-from-fixed($date - $k);
+}
+
+#| Obtains the first day-of-the-week ($k, Monday = 1) before the given date.
+sub kday-before(Int $k, Int $date) {
+    kday-on-or-before($k, $date - 1);
+}
+
+#| Provides the day-of-the-week ($k, Monday = 1) $n weeks forward or backwards in time from $g-date
+sub nth-kday(Int $n, Int  $k, Dateish $g-date) {
+    if $n > 0 { (7 * $n) + kday-before($k, rd($g-date)) }
+}
+
+#| Provides the unified date from an ISO calendar
+sub fixed-from-iso(Int $year, Int $week, Int $day) {
+    #nth-kday($week,7, Date.new($year - 1, 12, 28)) + $day;
+    my $search-date = $*FIRST-DAY - 1 < 1 ?? $*FIRST-DAY + 6 !! $*FIRST-DAY - 1;
+    my $dec-day = 24 + $*MIN-DAYS;
+
+    nth-kday($week,$search-date, Date.new($year - 1, 12, $dec-day)) + $day;
+}
+
+#| Calculates the ISO date from a unified date (here, we take a Gregorian and immediately convert)
+sub iso-from-fixed($*FIRST-DAY, $*MIN-DAYS, $d) {
+    my $date = rd $d;
+    #my $approx = floor( ($date - 4) / (146097/400) ) + 1;
+    # The approximation needs to use the - 4, it is not based on the minimum-day count
+    my $approx = floor( ($date - 4) / (146097/400) ) + 1;
+    my $year = $approx + ($date >= fixed-from-iso($approx + 1, 1, 1)      );
+
+    my $day = $date % 7;
+
+    my $week = floor( (1/7) * ($date - fixed-from-iso($year, 1, 1) ) ) + 1;
+   #return $year, $week, $day;
+    return $week;
+}
+
+# To quickly generate a list of manually calculated test values, do the following.
+# (1) Set calendar application to start the week on $DAY-OF-WEEK (Monday = 1, Sunday = 7)
+# (2) Use the following tables to double check values. Shift the top part to match the first
+#     day of the week, and then compare to the calculated value.  The example table is for
+#     Monday base:
+#     Mon Tue Wed Thu Fri Sat Sun | Norm | Leap
+#      1   2   3   4   5   6   7      1      1
+#          1   2   3   4   5   6      1      1
+#              1   2   3   4   5      1      1
+#                  1   2   3   4      1      1
+#                      1   2   3     53     53
+#                          1   2     52     53
+#                              1     52     52
+# (3) Use the leap value if the PREVIOUS year was
+#     (a) a leap year
+#     (b) the year began on $DAY-OF-WEEK + 4 (Thursday for Monday based calendars, Wednesday for Sunday based, etc)
+# (4) The table listed in (3) can be adapted to different lengths by doing the following:
+#     (a) The Norm and Leap values for the first $MIN-DAYS-IN-WEEK rows will be 1 and 1.
+#     (b) The Norm and Leap values for the next row will be 53 and 53
+#     (c) The Norm and Leap values for the next row will be 52 and 53
+#     (d) The Norm and Leap values for all subsequent rows will be 52 and 52.
+
+
+# Standard ISO 1999-2023 for January 1
+#               2000              ! 2005          !     2010      !         2015  !            2020!
+my @d1-m4 = (53, 52,  1,  1,  1,  1, 53, 52,  1,  1,  1, 53, 52, 52,  1,  1,  1, 53, 52,  1,  1,  1, 53, 52, 52);
+my @d1-m1 = ( 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1);
+my @d7-m1 = ( 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1);
+my @d7-m4 = (52, 52,  1,  1,  1, 53, 52,  1,  1,  1, 53, 52, 52,  1,  1,  1, 53, 52,  1,  1,  1,  1, 53, 52,  1);
+my @d6-m3 = (52,  1,  1,  1,  1, 53,  1,  1,  1,  1, 53, 52,  1,  1,  1,  1, 53, 52,  1,  1,  1,  1, 53,  1,  1);
+
+
+for (@d1-m4, @d1-m1, @d7-m1, @d7-m4, @d6-m3) Z <d1-m4 d1-m1 d7-m1 d7-m4 d6-m3> -> (@week-val, $type) {
+    print "$type: ";
+    for 1999..2023 Z @week-val -> ($year, $week) {
+        $type ~~ /d $<first>=<.digit> '-' m $<min>=<.digit>/;
+        #print mod-iso-from-fixed($<first>.Int, $<min>.Int, Date.new: $year,1,1);
+        print mod-iso-from-fixed($<first>.Int, $<min>.Int, Date.new: $year,1,1) == $week ?? '√' !! 'x';
+    }
+    say "";
+}
+
+#| Provides the day-of-the-week ($k, Monday = 1) $n weeks forward or backwards in time from $g-date
+sub mod-nth-kday(Int $n, Int  $k, Dateish $g-date) {
+    my $date = rd($g-date) - 1;
+    (7 * $n) + $date - (($date - $k) mod 7)
+}
+
+
+#| Provides the unified date from an ISO calendar
+sub mod-fixed-from-iso(Int $year) {
+    my $search-date = $*FIRST-DAY - 1;
+    my $dec-day = 24 + $*MIN-DAYS;
+
+    my $date = rd( Date.new: $year - 1, 12, $dec-day) - 1;
+    8 + $date - (($date - $search-date) mod 7)
+
+    #mod-nth-kday($week,$search-date, $date) + $day;
+}
+
+sub mod-iso-from-fixed($*FIRST-DAY, $*MIN-DAYS, $d) {
+    my $date = rd $d;
+    my $approx = floor( ($date - 4) / (146097/400) ) + 1;
+    my $year = $approx + ($date >= mod-fixed-from-iso($approx + 1) );
+    my $week = floor( (1/7) * ($date - mod-fixed-from-iso($year) ) ) + 1;
+   #return $year, $week, $day;
+    return $week;
+}
+
+
+#done-testing;

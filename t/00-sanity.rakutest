@@ -1,5 +1,6 @@
 use Intl::Format::DateTime;
 use Test;
 
+ok True;
 
-done-testing();
+done-testing;

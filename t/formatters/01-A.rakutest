@@ -1,0 +1,50 @@
+use v6.d;
+use Test;
+use Intl::Format::DateTime :expert;
+use Intl::CLDR;
+use Intl::LanguageTag;
+use experimental :rakuast;
+
+my @t0;
+my @t23;
+my @patterns = <A AA AAA AAAA AAAAA AAAAAA AAAAAAA AAAAAAAA AAAAAAAAA>;
+my @seconds = 0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001;
+
+@t0.push: DateTime.new(:2000year, :1month, :1day, :0hour, :0minute, :second($_))
+    for @seconds;
+@t23.push: DateTime.new(:2000year, :1month, :1day, :23hour, :59minute, :second($_))
+    for @seconds;
+
+my %digits = en => <0 1 86340>, fa => <۰ ۱ ۸۶۳۴۰>, my => <၀ ၁ ၈၆၃၄၀>,;
+
+for <en fa my> -> \language {
+    subtest {
+        my $is-valid = True;
+        for 0..8 -> \pattern {
+            for 0..5 -> \second {
+                my $fmt = datetime-formatter(@patterns[pattern], :language(LanguageTag.new: language)).(@t0[second]);
+                my $want = %digits{language}[1];
+                $want ~= %digits{language}[0] x (5 - second);
+                $want = %digits{language}[0] x (pattern + 1 - $want.chars) ~ $want;
+                $is-valid = False
+                    if $want ne $fmt;
+            }
+        }
+        ok $is-valid, "A..AAAAAAAAA for start-of-day for {language}";
+
+        $is-valid = True;
+        for 0..8 -> \pattern {
+            for 0..5 -> \second {
+                my $fmt = datetime-formatter(@patterns[pattern], :language(LanguageTag.new: language)).(@t23[second]);
+                my $want =  %digits{language}[1];
+                $want ~= %digits{language}[0] x (5 - second);
+                $want = %digits{language}[2] ~ %digits{language}[0] x (6 - $want.chars) ~ $want;
+                $is-valid = False
+                    if $want ne $fmt;
+            }
+        }
+        ok $is-valid, "A..AAAAAAAAA for end-of-day for {language}";
+    }, "A-series for {language}";
+
+}
+done-testing;

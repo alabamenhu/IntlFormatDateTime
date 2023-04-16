@@ -10,13 +10,13 @@ This script assumes that the metaZones.xml file from CLDR is in the same directo
 use XML;
 use DateTime::Timezones;
 
-my IO::Handle $file = open "Metazones.data", :w;
+my IO::Handle $file = open "../resources/Metazones.data", :w;
 
 my $xml = open-xml("metaZones.xml");
 
-my @timezones = $xml.getElementsByTagName('metaZones'   ).head.
-        getElementsByTagName('metazoneInfo').head.
-        getElementsByTagName('timezone');
+my @timezones = $xml.getElementsByTagName('metaZones'   ).head
+        .getElementsByTagName('metazoneInfo').head
+        .getElementsByTagName('timezone');
 
 sub gmt(Str \stamp, $timezone) {
     # 1983-10-30 12:00
@@ -37,12 +37,12 @@ for @timezones -> $timezone {
         try {
             CATCH { .say }
             $file.print:
-                    ","
-                            ~ $link-to
-                            ~ ","
-                            ~ ($start eq '*' ?? min !! gmt($start, $olson))
-                            ~ ","
-                    ~ ($end eq '*' ?? max !! gmt($end, $olson));
+                ","
+                ~ $link-to
+                ~ ","
+                ~ ($start eq '*' ?? min !! gmt($start, $olson))
+                ~ ","
+                ~ ($end eq '*' ?? max !! gmt($end, $olson));
         }
     }
     $file.print: "\n";
